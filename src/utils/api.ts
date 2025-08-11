@@ -33,12 +33,20 @@ export const getApiUrl = (): string => {
 
 // Function to get all available API URLs for fallback
 export const getApiUrls = (): string[] => {
+  // Force Render backend if we're not on localhost
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    console.log('🌐 Prioritizing Render backend (not localhost)');
+    return [API_URLS.RENDER, API_URLS.LOCAL];
+  }
+
   // In production, prioritize Render backend
   if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_RENDER_API_URL) {
+    console.log('🚀 Prioritizing Render backend (production/Render URL set)');
     return [API_URLS.RENDER, API_URLS.LOCAL];
   }
   
   // In development, try localhost first
+  console.log('🏠 Prioritizing localhost backend (development)');
   return [API_URLS.LOCAL, API_URLS.RENDER];
 };
 

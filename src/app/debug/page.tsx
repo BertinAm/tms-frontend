@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { axiosApiCall } from "../../utils/api";
+import ApiDebug from "../../components/ApiDebug";
 
 export default function DebugPage() {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
@@ -69,6 +70,10 @@ export default function DebugPage() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
         API Debug Page
       </h1>
+      
+      <div className="mb-6">
+        <ApiDebug />
+      </div>
       
       <div className="space-y-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
