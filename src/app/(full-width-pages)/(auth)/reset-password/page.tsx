@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { axiosApiCall } from "../../../../utils/api";
 
+// Force dynamic rendering to prevent prerender issues
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export default function ResetPasswordPage() {
   const [formData, setFormData] = useState({
     password: "",

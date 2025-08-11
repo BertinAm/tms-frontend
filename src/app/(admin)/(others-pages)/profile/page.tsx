@@ -7,6 +7,10 @@ import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
 
+// Force dynamic rendering to prevent prerender issues
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const [formData, setFormData] = useState({
