@@ -6,12 +6,28 @@ const API_URLS = {
 
 // Function to get the appropriate API URL based on environment
 export const getApiUrl = (): string => {
+  // Debug logging
+  console.log('🔍 Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_RENDER_API_URL: process.env.NEXT_PUBLIC_RENDER_API_URL,
+    window_location: typeof window !== 'undefined' ? window.location.hostname : 'server'
+  });
+
+  // Force Render backend if we're not on localhost
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    console.log('🌐 Using Render backend (not localhost)');
+    return API_URLS.RENDER;
+  }
+
   // In production or when Render URL is explicitly set, use Render
   if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_RENDER_API_URL) {
+    console.log('🚀 Using Render backend (production/Render URL set)');
     return API_URLS.RENDER;
   }
   
   // In development, use localhost
+  console.log('🏠 Using localhost backend (development)');
   return API_URLS.LOCAL;
 };
 
