@@ -2,12 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { axiosApiCall } from "../../../../utils/api";
-
-// Force dynamic rendering to prevent prerender issues
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+import { useClientSearchParams } from "../../../../hooks/useClientSearchParams";
 
 export default function ResetPasswordPage() {
   const [formData, setFormData] = useState({
@@ -19,15 +15,8 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email");
-
-  // Handle client-side rendering
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const { get, isClient } = useClientSearchParams();
+  const email = get("email");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

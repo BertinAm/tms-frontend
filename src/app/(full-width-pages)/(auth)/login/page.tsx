@@ -6,10 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { axiosApiCall } from "../../../../utils/api";
 
-// Force dynamic rendering to prevent prerender issues
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
-
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     username: "",

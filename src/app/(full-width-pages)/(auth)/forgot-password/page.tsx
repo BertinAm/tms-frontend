@@ -2,19 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { axiosApiCall } from "../../../../utils/api";
-
-// Force dynamic rendering to prevent prerender issues
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,13 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { axiosApiCall } from "../../../../utils/api";
-
-// Force dynamic rendering to prevent prerender issues
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+import { useClientSearchParams } from "../../../../hooks/useClientSearchParams";
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -16,19 +13,13 @@ export default function VerifyOTPPage() {
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [isClient, setIsClient] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { get, isClient } = useClientSearchParams();
   const { login } = useAuth();
 
-  const type = searchParams.get("type");
-  const email = searchParams.get("email");
-
-  // Handle client-side rendering
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const type = get("type");
+  const email = get("email");
 
   useEffect(() => {
     // Focus first input on mount

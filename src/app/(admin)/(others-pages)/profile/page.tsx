@@ -11,6 +11,11 @@ import Button from "@/components/ui/button/Button";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
+// Prevent static generation
+export function generateStaticParams() {
+  return [];
+}
+
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const [formData, setFormData] = useState({
