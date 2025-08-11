@@ -10,6 +10,7 @@ Fixed prerender errors and localStorage issues that were causing Heroku build fa
 - **Solution**: Added comprehensive client-side rendering checks + dynamic export directives + custom search params hook
 
 ### 2. **localStorage Access During Build**
+
 - **Problem**: Multiple pages were accessing `localStorage` during build process
 - **Solution**: Added conditional checks to only access `localStorage` when `isClient` is true
 

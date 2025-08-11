@@ -1,23 +1,28 @@
 // API URL configuration for both localhost and Render
 const API_URLS = {
-  LOCAL: 'http://localhost:8000',
-  RENDER: 'https://tms-backend-mnf4.onrender.com'
+  LOCAL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  RENDER: process.env.NEXT_PUBLIC_RENDER_API_URL || 'https://tms-backend-mnf4.onrender.com'
 };
 
 // Function to get the appropriate API URL based on environment
 export const getApiUrl = (): string => {
-  // Check if we're in development mode
-  if (process.env.NODE_ENV === 'development') {
-    // In development, try localhost first, fallback to Render
-    return API_URLS.LOCAL;
+  // In production or when Render URL is explicitly set, use Render
+  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_RENDER_API_URL) {
+    return API_URLS.RENDER;
   }
   
-  // In production, use Render
-  return API_URLS.RENDER;
+  // In development, use localhost
+  return API_URLS.LOCAL;
 };
 
 // Function to get all available API URLs for fallback
 export const getApiUrls = (): string[] => {
+  // In production, prioritize Render backend
+  if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_RENDER_API_URL) {
+    return [API_URLS.RENDER, API_URLS.LOCAL];
+  }
+  
+  // In development, try localhost first
   return [API_URLS.LOCAL, API_URLS.RENDER];
 };
 
