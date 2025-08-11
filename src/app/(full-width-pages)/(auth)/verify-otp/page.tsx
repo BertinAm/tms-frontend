@@ -12,6 +12,7 @@ export default function VerifyOTPPage() {
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isClient, setIsClient] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,6 +20,11 @@ export default function VerifyOTPPage() {
 
   const type = searchParams.get("type");
   const email = searchParams.get("email");
+
+  // Handle client-side rendering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     // Focus first input on mount
@@ -76,13 +82,15 @@ export default function VerifyOTPPage() {
         method: "POST",
         data: {
           otp: otpString,
-          token: localStorage.getItem("otp_token")
+          token: isClient ? localStorage.getItem("otp_token") : ""
         }
       });
 
       if (type === "password_reset") {
         // Store reset token and redirect to reset password page
-        localStorage.setItem("reset_token", response.token);
+        if (isClient) {
+          localStorage.setItem("reset_token", response.token);
+        }
         router.push(`/reset-password?email=${encodeURIComponent(email || "")}`);
       } else {
         // Registration verification - login the user
@@ -130,6 +138,22 @@ export default function VerifyOTPPage() {
       ? `Enter the 6-digit code sent to ${email} to reset your password.`
       : `Enter the 6-digit code sent to ${email} to verify your account.`;
   };
+
+  // Show loading state during server-side rendering
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">

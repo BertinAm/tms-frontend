@@ -29,7 +29,13 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle client-side rendering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -82,7 +88,7 @@ export default function ProfilePage() {
         method: "PUT",
         data: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${isClient ? localStorage.getItem('access_token') : ''}`
         }
       });
 
@@ -117,7 +123,7 @@ export default function ProfilePage() {
           new_password: passwordData.new_password,
         },
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${isClient ? localStorage.getItem('access_token') : ''}`
         }
       });
 
@@ -153,7 +159,7 @@ export default function ProfilePage() {
         method: "POST",
         data: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${isClient ? localStorage.getItem('access_token') : ''}`,
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -180,7 +186,7 @@ export default function ProfilePage() {
       await axiosApiCall("/api/auth/delete-account", {
         method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${isClient ? localStorage.getItem('access_token') : ''}`
         }
       });
 
@@ -198,6 +204,18 @@ export default function ProfilePage() {
     }
     return user?.username?.[0]?.toUpperCase() || "U";
   };
+
+  // Show loading state during server-side rendering
+  if (!isClient) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">

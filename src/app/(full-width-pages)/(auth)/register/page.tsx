@@ -18,7 +18,13 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+
+  // Handle client-side rendering
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -46,8 +52,10 @@ export default function RegisterPage() {
       });
       
       // Store the OTP token temporarily
-      localStorage.setItem("otp_token", response.data.token);
-      localStorage.setItem("user_id", response.data.user_id);
+      if (isClient) {
+        localStorage.setItem("otp_token", response.data.token);
+        localStorage.setItem("user_id", response.data.user_id);
+      }
       
       // Redirect to OTP verification
       router.push(`/verify-otp?type=registration&email=${encodeURIComponent(formData.email)}`);

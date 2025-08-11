@@ -15,9 +15,15 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+
+  // Handle client-side rendering
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -49,12 +55,14 @@ export default function ResetPasswordPage() {
         method: "POST",
         data: {
           password: formData.password,
-          token: localStorage.getItem("reset_token")
+          token: isClient ? localStorage.getItem("reset_token") : ""
         }
       });
 
       setSuccess(true);
-      localStorage.removeItem("reset_token");
+      if (isClient) {
+        localStorage.removeItem("reset_token");
+      }
     } catch (err: any) {
       if (err.message?.includes('400')) {
         setError("Invalid or expired reset token. Please try again.");
@@ -65,6 +73,22 @@ export default function ResetPasswordPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state during server-side rendering
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
