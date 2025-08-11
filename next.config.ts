@@ -16,6 +16,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    NEXT_PUBLIC_RENDER_API_URL: process.env.NEXT_PUBLIC_RENDER_API_URL || 'https://tms-backend-mnf4.onrender.com',
     GROK_API_KEY: process.env.GROK_API_KEY,
   },
   images: {

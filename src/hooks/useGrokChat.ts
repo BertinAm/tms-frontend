@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import { axiosApiCall } from '../utils/api';
 
 export interface ChatMessage {
   id: string;
@@ -53,11 +53,14 @@ export const useGrokChat = (): UseGrokChatReturn => {
 
       setMessages(prev => [...prev, userMessage]);
 
-      // Send message to unified chat endpoint using direct URL
-      const response = await axios.post('http://localhost:8000/api/chat', {
-        message,
-        session_id: 'tms-chat',
-        reset: false
+      // Send message to unified chat endpoint using API utility
+      const response = await axiosApiCall('/api/chat', {
+        method: 'POST',
+        data: {
+          message,
+          session_id: 'tms-chat',
+          reset: false
+        }
       });
 
       if (response.data.response) {
@@ -94,8 +97,11 @@ export const useGrokChat = (): UseGrokChatReturn => {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/tickets/analyze', {
-        ticket_id: ticketId
+      const response = await axiosApiCall('/api/tickets/analyze', {
+        method: 'POST',
+        data: {
+          ticket_id: ticketId
+        }
       });
 
       if (response.data.analysis) {
@@ -114,7 +120,9 @@ export const useGrokChat = (): UseGrokChatReturn => {
   const resetConversation = useCallback(async () => {
     try {
       // Reset conversation on backend
-      await axios.delete('http://localhost:8000/api/chat/history');
+      await axiosApiCall('/api/chat/history', {
+        method: 'DELETE'
+      });
       
       // Clear local messages
       setMessages([]);

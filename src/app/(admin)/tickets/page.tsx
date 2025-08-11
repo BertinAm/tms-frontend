@@ -43,7 +43,7 @@ export default function TicketsPage() {
             <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
               <li>• Start Django server: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">python manage.py runserver</code></li>
               <li>• Create sample tickets: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">python manage.py create_sample_tickets</code></li>
-              <li>• Check if backend is accessible at: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">http://localhost:8000/api/tickets</code></li>
+              <li>• Check if backend is accessible at the configured API endpoints</li>
               <li>• Verify database has tickets</li>
             </ul>
           </div>

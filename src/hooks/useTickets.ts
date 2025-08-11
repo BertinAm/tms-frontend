@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { axiosApiCall } from '../utils/api';
 
 export interface Ticket {
   ticket_id: string;
@@ -21,15 +21,13 @@ export const useTickets = () => {
       setConnectionStatus('checking');
       
       console.log('🔍 Attempting to fetch tickets from backend...');
-      console.log('📍 API URL: http://localhost:8000/api/tickets');
       
-      const response = await axios.get('http://localhost:8000/api/tickets', {
-        timeout: 5000, // 5 second timeout
+      const response = await axiosApiCall('/api/tickets', {
+        method: 'GET',
+        timeout: 5000,
         headers: {
           'Content-Type': 'application/json',
         },
-        // Add additional options to help with debugging
-        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
       });
       
       console.log('✅ API Response Status:', response.status);

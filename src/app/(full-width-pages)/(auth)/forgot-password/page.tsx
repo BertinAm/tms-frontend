@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,20 +18,15 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/forgot-password", {
-        email: email,
+      const response = await axiosApiCall("/api/auth/forgot-password", {
+        method: "POST",
+        data: { email }
       });
       
-      // Store the OTP token temporarily
-      localStorage.setItem("otp_token", response.data.token);
-      
-      // Redirect to OTP verification
-      router.push(`/verify-otp?type=password_reset&email=${encodeURIComponent(email)}`);
+      setSuccess(true);
     } catch (err: any) {
-      if (err.response?.data?.email) {
-        setError(err.response.data.email[0]);
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.message?.includes('400')) {
+        setError("Email not found. Please check your email address.");
       } else {
         setError("Failed to send reset email. Please try again.");
       }

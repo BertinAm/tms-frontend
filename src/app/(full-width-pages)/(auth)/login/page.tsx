@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -31,10 +31,13 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/login", formData);
+      const response = await axiosApiCall("/api/auth/login", {
+        method: "POST",
+        data: formData
+      });
       
       // Use the login method from AuthContext
-      login(response.data.access_token, response.data.refresh_token, response.data.user);
+      login(response.access_token, response.refresh_token, response.user);
       
       // Redirect to dashboard
       router.push("/");

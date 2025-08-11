@@ -1,57 +1,28 @@
 "use client";
 
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
+import { axiosApiCall } from "../../utils/api";
 
 export default function DirectTestPage() {
-  const [testResult, setTestResult] = useState<string>('');
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const testProxy = async () => {
+  const testDirectConnection = async () => {
     setLoading(true);
-    setTestResult('Testing proxy connection...');
-    
-    try {
-      console.log('🧪 Testing proxy connection...');
-      
-      const response = await axios.get('/api/tickets', {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      console.log('✅ Proxy test successful:', response.data);
-      setTestResult(`✅ Proxy successful! Found ${response.data.length} tickets`);
-      
-    } catch (error: any) {
-      console.error('❌ Proxy test failed:', error);
-      setTestResult(`❌ Proxy failed: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setError(null);
+    setResult(null);
 
-  const testDirect = async () => {
-    setLoading(true);
-    setTestResult('Testing direct connection...');
-    
     try {
-      console.log('🧪 Testing direct connection...');
-      
-      const response = await axios.get('http://localhost:8000/api/tickets', {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await axiosApiCall('/api/tickets', {
+        method: 'GET',
+        timeout: 10000
       });
-      
-      console.log('✅ Direct test successful:', response.data);
-      setTestResult(`✅ Direct successful! Found ${response.data.length} tickets`);
-      
-    } catch (error: any) {
-      console.error('❌ Direct test failed:', error);
-      setTestResult(`❌ Direct failed: ${error.message}`);
+
+      setResult(response);
+    } catch (err: any) {
+      console.error("Direct test error:", err);
+      setError(`Failed to connect: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -67,25 +38,25 @@ export default function DirectTestPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex space-x-4 mb-4">
             <button
-              onClick={testProxy}
+              onClick={testDirectConnection}
               disabled={loading}
               className="px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-lg"
             >
-              {loading ? 'Testing...' : 'Test Proxy'}
-            </button>
-            
-            <button
-              onClick={testDirect}
-              disabled={loading}
-              className="px-4 py-2 bg-secondary-500 hover:bg-secondary-600 disabled:bg-gray-300 text-gray-900 rounded-lg"
-            >
-              {loading ? 'Testing...' : 'Test Direct'}
+              {loading ? 'Testing...' : 'Test Connection'}
             </button>
           </div>
           
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <h3 className="font-semibold mb-2">Test Result:</h3>
-            <p className="text-sm font-mono">{testResult || 'Click a button to start testing...'}</p>
+            {loading && <p className="text-sm font-mono">Testing connection...</p>}
+            {error && <p className="text-sm font-mono text-red-600">{error}</p>}
+            {result && (
+              <div>
+                <p className="text-sm font-mono text-green-600">✅ Connection successful!</p>
+                <p className="text-sm font-mono">Found {Array.isArray(result) ? result.length : 0} tickets</p>
+              </div>
+            )}
+            {!loading && !error && !result && <p className="text-sm font-mono">Click a button to start testing...</p>}
           </div>
         </div>
         

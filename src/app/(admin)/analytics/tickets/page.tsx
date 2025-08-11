@@ -1,61 +1,35 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import axios from "axios";
 
-interface AnalyticsData {
-  period: string;
-  summary: {
-    total_tickets: number;
-    open_tickets: number;
-    closed_tickets: number;
-    high_priority: number;
-    medium_priority: number;
-    low_priority: number;
-  };
-  daily_counts: Array<{
-    date: string;
-    count: number;
-  }>;
-  priority_distribution: {
-    high: number;
-    medium: number;
-    low: number;
-  };
-  status_distribution: {
-    open: number;
-    closed: number;
-  };
-  recent_tickets: Array<{
-    ticket_id: string;
-    subject: string;
-    priority: string;
-    status: string;
-    received_at: string;
-  }>;
-}
+import React, { useState, useEffect } from "react";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function TicketAnalyticsPage() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState(30);
-
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`http://localhost:8000/api/tickets/analytics?days=${timeRange}`);
-      setAnalyticsData(response.data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load analytics data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [timeRange, setTimeRange] = useState(7);
 
   useEffect(() => {
     fetchAnalytics();
   }, [timeRange]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axiosApiCall(`/api/tickets/analytics?days=${timeRange}`, {
+        method: "GET"
+      });
+
+      setAnalytics(response);
+    } catch (err: any) {
+      console.error("Error loading analytics:", err);
+      setError("Failed to load analytics data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -85,7 +59,7 @@ export default function TicketAnalyticsPage() {
     );
   }
 
-  if (!analyticsData) {
+  if (!analytics) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -129,7 +103,7 @@ export default function TicketAnalyticsPage() {
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Total Tickets</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analyticsData.summary.total_tickets}</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analytics.summary.total_tickets}</p>
             </div>
           </div>
         </div>
@@ -143,7 +117,7 @@ export default function TicketAnalyticsPage() {
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Open Tickets</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analyticsData.summary.open_tickets}</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analytics.summary.open_tickets}</p>
             </div>
           </div>
         </div>
@@ -157,7 +131,7 @@ export default function TicketAnalyticsPage() {
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">High Priority</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analyticsData.summary.high_priority}</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analytics.summary.high_priority}</p>
             </div>
           </div>
         </div>
@@ -171,7 +145,7 @@ export default function TicketAnalyticsPage() {
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Resolved</p>
-              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analyticsData.summary.closed_tickets}</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{analytics.summary.closed_tickets}</p>
             </div>
           </div>
         </div>
@@ -183,7 +157,7 @@ export default function TicketAnalyticsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Daily Ticket Count</h3>
           <div className="space-y-2">
-            {analyticsData.daily_counts.map((day, index) => (
+            {analytics.daily_counts.map((day: any, index: number) => (
               <div key={index} className="flex items-center justify-between">
                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                   {new Date(day.date).toLocaleDateString()}
@@ -192,7 +166,7 @@ export default function TicketAnalyticsPage() {
                   <div className="w-20 sm:w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-primary-500 h-2 rounded-full" 
-                      style={{ width: `${Math.min((day.count / Math.max(...analyticsData.daily_counts.map(d => d.count))) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((day.count / Math.max(...analytics.daily_counts.map((d: any) => d.count))) * 100, 100)}%` }}
                     ></div>
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white w-6 sm:w-8 text-right">
@@ -213,21 +187,21 @@ export default function TicketAnalyticsPage() {
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">High Priority</span>
               </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analyticsData.priority_distribution.high}</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analytics.priority_distribution.high}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Medium Priority</span>
               </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analyticsData.priority_distribution.medium}</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analytics.priority_distribution.medium}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Low Priority</span>
               </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analyticsData.priority_distribution.low}</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">{analytics.priority_distribution.low}</span>
             </div>
           </div>
         </div>
@@ -247,7 +221,7 @@ export default function TicketAnalyticsPage() {
         </div>
         
         <div className="p-4 sm:p-6">
-          {analyticsData.recent_tickets.length === 0 ? (
+          {analytics.recent_tickets.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,7 +233,7 @@ export default function TicketAnalyticsPage() {
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4">
-              {analyticsData.recent_tickets.map((ticket) => (
+              {analytics.recent_tickets.map((ticket: any) => (
                 <div 
                   key={ticket.ticket_id} 
                   className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 cursor-pointer"

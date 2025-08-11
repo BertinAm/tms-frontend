@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import { axiosApiCall } from "../../utils/api";
 
 export default function TestPage() {
   const [testResult, setTestResult] = useState<string>('');
@@ -14,15 +14,13 @@ export default function TestPage() {
     try {
       console.log('🧪 Testing frontend-backend connection...');
       
-      const response = await axios.get('/api/tickets', {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await axiosApiCall('/api/tickets', {
+        method: 'GET',
+        timeout: 10000
       });
       
-      console.log('✅ Test successful:', response.data);
-      setTestResult(`✅ Connection successful! Found ${response.data.length} tickets`);
+      console.log('✅ Test successful:', response);
+      setTestResult(`✅ Connection successful! Found ${Array.isArray(response) ? response.length : 0} tickets`);
       
     } catch (error: any) {
       console.error('❌ Test failed:', error);
@@ -59,7 +57,7 @@ export default function TestPage() {
           </h3>
           <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
             <li>• Ensure Django server is running on port 8000</li>
-            <li>• Check if backend is accessible at http://localhost:8000/api/tickets</li>
+            <li>• Check if backend is accessible at the configured API endpoints</li>
             <li>• Verify Next.js proxy configuration in next.config.ts</li>
             <li>• Check browser console for detailed error messages</li>
           </ul>

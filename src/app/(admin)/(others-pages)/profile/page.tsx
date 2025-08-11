@@ -1,32 +1,75 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { axiosApiCall } from "../../../../utils/api";
 import PageBreadCrumb from "@/components/common/PageBreadCrumb";
 import ComponentCard from "@/components/common/ComponentCard";
 import Button from "@/components/ui/button/Button";
-import { Metadata } from "next";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    username: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [formData, setFormData] = useState({
-    first_name: user?.first_name || "",
-    last_name: user?.last_name || "",
-    email: user?.email || "",
-  });
-
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
     current_password: "",
     new_password: "",
     confirm_password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        email: user.email || "",
+        username: user.username || "",
+      });
+    }
+  }, [user]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+    if (error) setError("");
+    if (success) setSuccess("");
+  };
+
+  const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value,
+    });
+    if (error) setError("");
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +78,21 @@ export default function ProfilePage() {
     setSuccess("");
 
     try {
-      const response = await axios.put("http://localhost:8000/api/auth/profile", formData);
+      const response = await axiosApiCall("/api/auth/profile", {
+        method: "PUT",
+        data: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
       setSuccess("Profile updated successfully!");
-      
-      // Update user data in context
-      const updatedUser = { ...user, ...response.data };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to update profile");
+      if (err.message?.includes('400')) {
+        setError("Invalid data. Please check your input.");
+      } else {
+        setError("Failed to update profile. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -50,80 +100,95 @@ export default function ProfilePage() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setLoading(true);
+    setError("");
+
     if (passwordData.new_password !== passwordData.confirm_password) {
       setError("New passwords don't match");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
     try {
-      await axios.post("http://localhost:8000/api/auth/change-password", {
-        current_password: passwordData.current_password,
-        new_password: passwordData.new_password,
+      await axiosApiCall("/api/auth/change-password", {
+        method: "POST",
+        data: {
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password,
+        },
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
       });
-      
+
       setSuccess("Password changed successfully!");
       setPasswordData({
         current_password: "",
         new_password: "",
         confirm_password: "",
       });
+      setShowPasswordForm(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to change password");
+      if (err.message?.includes('400')) {
+        setError("Current password is incorrect.");
+      } else {
+        setError("Failed to change password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File size must be less than 5MB");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("profile_picture", file);
+  const handleImageUpload = async () => {
+    if (!profileImage) return;
 
     setLoading(true);
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/upload-profile-picture", formData, {
+      const formData = new FormData();
+      formData.append('profile_picture', profileImage);
+
+      const response = await axiosApiCall("/api/auth/upload-profile-picture", {
+        method: "POST",
+        data: formData,
         headers: {
-          "Content-Type": "multipart/form-data",
-        },
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      
+
       setSuccess("Profile picture updated successfully!");
-      // Update user data with new profile picture URL
-      const updatedUser = { ...user, profile_picture: response.data.profile_picture };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setProfileImage(null);
+      setImagePreview("");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to upload profile picture");
+      setError("Failed to upload profile picture. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      await axios.delete("http://localhost:8000/api/auth/delete-account");
+      await axiosApiCall("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
       logout();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to delete account");
+      setError("Failed to delete account. Please try again.");
     } finally {
       setLoading(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -158,9 +223,9 @@ export default function ProfilePage() {
             <div className="text-center">
               <div className="relative inline-block">
                 <div className="w-32 h-32 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {user?.profile_picture ? (
+                  {imagePreview ? (
                     <img
-                      src={user.profile_picture}
+                      src={imagePreview}
                       alt="Profile"
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -182,7 +247,7 @@ export default function ProfilePage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleProfilePictureUpload}
+                onChange={handleImageChange}
                 className="hidden"
               />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -206,13 +271,13 @@ export default function ProfilePage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Member since</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {new Date(user?.date_joined || '').toLocaleDateString()}
+                  {new Date().toLocaleDateString()}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Last login</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user?.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                  Today
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -398,10 +463,11 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={handleDeleteAccount}
+                  disabled={loading}
                   className="bg-red-500 hover:bg-red-600 text-white"
                 >
-                  Delete Account
+                  {loading ? "Deleting..." : "Delete Account"}
                 </Button>
               </div>
             </div>
@@ -409,34 +475,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Confirm Account Deletion
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <Button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-700"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDeleteAccount}
-                disabled={loading}
-                className="bg-red-500 hover:bg-red-600 text-white"
-              >
-                {loading ? "Deleting..." : "Delete Account"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

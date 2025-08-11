@@ -1,174 +1,123 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import axios from "axios";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-  const [canResend, setCanResend] = useState(false);
-  
+  const [resendLoading, setResendLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { login } = useAuth();
-  
-  const type = searchParams.get('type') || 'registration';
-  const email = searchParams.get('email') || '';
+
+  const type = searchParams.get("type");
+  const email = searchParams.get("email");
 
   useEffect(() => {
     // Focus first input on mount
-    inputRefs.current[0]?.focus();
-    
-    // Start countdown
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
   }, []);
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return; // Prevent multiple characters
-    
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleChange = (index: number, value: string) => {
+    if (value.length > 1) return; // Only allow single digit
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-    
-    // Auto-focus next input
+
+    // Move to next input if value is entered
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
-    
-    if (error) setError("");
-  };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    // Move to previous input if value is deleted
+    if (!value && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '');
-    
-    if (pasteData.length === 6) {
-      const newOtp = pasteData.split('').slice(0, 6);
-      setOtp(newOtp);
-      inputRefs.current[5]?.focus();
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const otpString = otp.join('');
-    
-    if (otpString.length !== 6) {
-      setError("Please enter all 6 digits");
-      return;
-    }
-
     setLoading(true);
     setError("");
 
-    try {
-      const token = localStorage.getItem("otp_token");
-      if (!token) {
-        setError("Session expired. Please try again.");
-        router.push(type === 'password_reset' ? '/forgot-password' : '/register');
-        return;
-      }
+    const otpString = otp.join("");
+    if (otpString.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      setLoading(false);
+      return;
+    }
 
-      const response = await axios.post("http://localhost:8000/api/auth/check-otp", {
-        otp: otpString,
-        token: token,
+    try {
+      const response = await axiosApiCall("/api/auth/check-otp", {
+        method: "POST",
+        data: {
+          otp: otpString,
+          token: localStorage.getItem("otp_token")
+        }
       });
 
-      if (type === 'registration') {
-        // Use the login method from AuthContext
-        login(response.data.access_token, response.data.refresh_token, response.data.user);
-        localStorage.removeItem("otp_token");
-        localStorage.removeItem("user_id");
-        
-        router.push("/");
-      } else if (type === 'password_reset') {
+      if (type === "password_reset") {
         // Store reset token and redirect to reset password page
-        localStorage.setItem("reset_token", response.data.reset_token);
-        localStorage.removeItem("otp_token");
-        
-        router.push("/reset-password");
+        localStorage.setItem("reset_token", response.token);
+        router.push(`/reset-password?email=${encodeURIComponent(email || "")}`);
+      } else {
+        // Registration verification - login the user
+        login(response.access_token, response.refresh_token, response.user);
+        router.push("/");
       }
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.message?.includes('400')) {
+        setError("Invalid OTP. Please try again.");
       } else {
-        setError("Invalid or expired OTP. Please try again.");
+        setError("Verification failed. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendOTP = async () => {
-    setResending(true);
-    setError("");
-
+  const handleResend = async () => {
+    setResendLoading(true);
     try {
-      let endpoint;
-      let payload;
-      
-      if (type === 'password_reset') {
-        endpoint = "http://localhost:8000/api/auth/forgot-password";
-        payload = { email };
-      } else {
-        // For registration, we'd need to call registration again
-        // This is a simplified approach - in production you might have a separate resend endpoint
-        setError("Please go back and register again.");
-        setResending(false);
-        return;
+      let endpoint = "/api/auth/forgot-password";
+      if (type === "registration") {
+        endpoint = "/api/auth/register";
       }
 
-      const response = await axios.post(endpoint, payload);
-      localStorage.setItem("otp_token", response.data.token);
-      
-      // Reset countdown
+      await axiosApiCall(endpoint, {
+        method: "POST",
+        data: { email }
+      });
+
       setCountdown(60);
-      setCanResend(false);
-      
-      // Clear OTP inputs
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-      
-      // Start countdown again
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            setCanResend(true);
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-    } catch (err: any) {
+    } catch (err) {
       setError("Failed to resend OTP. Please try again.");
     } finally {
-      setResending(false);
+      setResendLoading(false);
     }
   };
 
@@ -225,9 +174,8 @@ export default function VerifyOTPPage() {
                     type="text"
                     maxLength={1}
                     value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onChange={(e) => handleChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    onPaste={handlePaste}
                     className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                   />
                 ))}
@@ -255,13 +203,13 @@ export default function VerifyOTPPage() {
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
               Didn't receive the code?
             </p>
-            {canResend ? (
+            {countdown > 0 ? (
               <button
-                onClick={handleResendOTP}
-                disabled={resending}
+                onClick={handleResend}
+                disabled={resendLoading}
                 className="text-primary-600 hover:text-primary-500 dark:text-primary-400 font-medium text-sm"
               >
-                {resending ? "Sending..." : "Resend Code"}
+                {resendLoading ? "Sending..." : "Resend Code"}
               </button>
             ) : (
               <p className="text-gray-500 dark:text-gray-400 text-sm">

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { axiosApiCall } from "../../utils/api";
 
 export default function DebugPage() {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
@@ -20,20 +20,18 @@ export default function DebugPage() {
     try {
       addLog('Making request to /api/tickets...');
       
-      const response = await axios.get('/api/tickets', {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await axiosApiCall('/api/tickets', {
+        method: 'GET',
+        timeout: 10000
       });
       
-      addLog(`✅ Response status: ${response.status}`);
-      addLog(`✅ Response data type: ${typeof response.data}`);
-      addLog(`✅ Is array: ${Array.isArray(response.data)}`);
-      addLog(`✅ Data length: ${response.data?.length || 0}`);
+      addLog(`✅ Response status: ${response.status || 'N/A'}`);
+      addLog(`✅ Response data type: ${typeof response}`);
+      addLog(`✅ Is array: ${Array.isArray(response)}`);
+      addLog(`✅ Data length: ${response?.length || 0}`);
       
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        addLog(`✅ Sample ticket: ${JSON.stringify(response.data[0], null, 2)}`);
+      if (Array.isArray(response) && response.length > 0) {
+        addLog(`✅ Sample ticket: ${JSON.stringify(response[0], null, 2)}`);
       }
       
     } catch (error: any) {
@@ -51,15 +49,13 @@ export default function DebugPage() {
     addLog('Testing direct backend connection...');
     
     try {
-      const response = await axios.get('http://localhost:8000/api/tickets', {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await axiosApiCall('/api/tickets', {
+        method: 'GET',
+        timeout: 10000
       });
       
-      addLog(`✅ Direct backend status: ${response.status}`);
-      addLog(`✅ Direct backend data length: ${response.data?.length || 0}`);
+      addLog(`✅ Direct backend status: Success`);
+      addLog(`✅ Direct backend data length: ${response?.length || 0}`);
       
     } catch (error: any) {
       addLog(`❌ Direct backend error: ${error.message}`);
@@ -82,7 +78,7 @@ export default function DebugPage() {
               disabled={loading}
               className="px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-lg"
             >
-              {loading ? 'Testing...' : 'Test Proxy API'}
+              {loading ? 'Testing...' : 'Test API'}
             </button>
             
             <button
@@ -100,7 +96,7 @@ export default function DebugPage() {
               <p className="text-gray-500">Click a button to start testing...</p>
             ) : (
               <div className="space-y-1">
-                {debugInfo.map((log, index) => (
+                {debugInfo.map((log: string, index: number) => (
                   <div key={index} className="text-sm font-mono bg-white dark:bg-gray-600 p-2 rounded">
                     {log}
                   </div>

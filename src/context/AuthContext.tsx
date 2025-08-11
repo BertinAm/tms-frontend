@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import axios from 'axios';
+import { axiosApiCall } from '../utils/api';
 
 interface User {
   id: number;
@@ -71,28 +71,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Set default authorization header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-
       // Verify token by getting user profile
       try {
-        const response = await axios.get('http://localhost:8000/api/auth/profile');
-        setUser(response.data);
+        const response = await axiosApiCall('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        setUser(response);
       } catch (error: any) {
-        if (error.response?.status === 401) {
+        if (error.message?.includes('401') || error.status === 401) {
           // Token expired, try to refresh
           try {
-            const refreshResponse = await axios.post('http://localhost:8000/api/auth/token/refresh/', {
-              refresh: refreshToken
+            const refreshResponse = await axiosApiCall('/api/auth/token/refresh/', {
+              method: 'POST',
+              data: {
+                refresh: refreshToken
+              }
             });
             
-            const newAccessToken = refreshResponse.data.access;
+            const newAccessToken = refreshResponse.access;
             localStorage.setItem('access_token', newAccessToken);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
             
             // Try to get profile again with new token
-            const profileResponse = await axios.get('http://localhost:8000/api/auth/profile');
-            setUser(profileResponse.data);
+            const profileResponse = await axiosApiCall('/api/auth/profile', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${newAccessToken}`
+              }
+            });
+            setUser(profileResponse);
           } catch (refreshError) {
             // Refresh failed, clear everything
             logout();
@@ -114,7 +123,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('refresh_token', refresh_token);
     localStorage.setItem('user', JSON.stringify(userData));
     
-    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setUser(userData);
   };
 
@@ -126,7 +134,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('reset_token');
     localStorage.removeItem('user_id');
     
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
 

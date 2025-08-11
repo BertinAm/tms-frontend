@@ -1,28 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import axios from "axios";
+import { useRouter, useSearchParams } from "next/navigation";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function ResetPasswordPage() {
   const [formData, setFormData] = useState({
-    new_password: "",
-    confirm_password: "",
+    password: "",
+    confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    // Check if reset token exists
-    const resetToken = localStorage.getItem("reset_token");
-    if (!resetToken) {
-      router.push("/forgot-password");
-    }
-  }, [router]);
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -32,65 +27,37 @@ export default function ResetPasswordPage() {
     if (error) setError("");
   };
 
-  const validatePassword = (password: string) => {
-    const errors = [];
-    if (password.length < 8) {
-      errors.push("at least 8 characters");
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push("one uppercase letter");
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push("one lowercase letter");
-    }
-    if (!/\d/.test(password)) {
-      errors.push("one number");
-    }
-    return errors;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    if (formData.new_password !== formData.confirm_password) {
-      setError("Passwords don't match.");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
-    const passwordErrors = validatePassword(formData.new_password);
-    if (passwordErrors.length > 0) {
-      setError(`Password must contain ${passwordErrors.join(", ")}.`);
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       setLoading(false);
       return;
     }
 
     try {
-      const resetToken = localStorage.getItem("reset_token");
-      if (!resetToken) {
-        setError("Session expired. Please try again.");
-        router.push("/forgot-password");
-        return;
-      }
-
-      await axios.post("http://localhost:8000/api/auth/reset-password", {
-        token: resetToken,
-        new_password: formData.new_password,
-        confirm_password: formData.confirm_password,
+      await axiosApiCall("/api/auth/reset-password", {
+        method: "POST",
+        data: {
+          password: formData.password,
+          token: localStorage.getItem("reset_token")
+        }
       });
 
-      // Clean up tokens
+      setSuccess(true);
       localStorage.removeItem("reset_token");
-      
-      // Redirect to login with success message
-      router.push("/login?message=password_reset_success");
     } catch (err: any) {
-      if (err.response?.data?.new_password) {
-        setError(err.response.data.new_password[0]);
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.message?.includes('400')) {
+        setError("Invalid or expired reset token. Please try again.");
       } else {
         setError("Failed to reset password. Please try again.");
       }
@@ -98,17 +65,6 @@ export default function ResetPasswordPage() {
       setLoading(false);
     }
   };
-
-  const getPasswordStrength = (password: string) => {
-    const errors = validatePassword(password);
-    if (password.length === 0) return { score: 0, text: "", color: "" };
-    if (errors.length === 0) return { score: 4, text: "Strong", color: "text-green-600" };
-    if (errors.length <= 2) return { score: 3, text: "Good", color: "text-yellow-600" };
-    if (errors.length <= 3) return { score: 2, text: "Fair", color: "text-orange-600" };
-    return { score: 1, text: "Weak", color: "text-red-600" };
-  };
-
-  const passwordStrength = getPasswordStrength(formData.new_password);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
@@ -146,8 +102,8 @@ export default function ResetPasswordPage() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  name="new_password"
-                  value={formData.new_password}
+                  name="password"
+                  value={formData.password}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white pr-12"
@@ -172,21 +128,17 @@ export default function ResetPasswordPage() {
               </div>
               
               {/* Password Strength Indicator */}
-              {formData.new_password && (
+              {formData.password && (
                 <div className="mt-2">
                   <div className="flex items-center space-x-2">
                     <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full transition-all duration-300 ${
-                          passwordStrength.score === 4 ? 'bg-green-500' :
-                          passwordStrength.score === 3 ? 'bg-yellow-500' :
-                          passwordStrength.score === 2 ? 'bg-orange-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${(passwordStrength.score / 4) * 100}%` }}
+                        className="h-full transition-all duration-300 bg-red-500"
+                        style={{ width: `${0 * 100}%` }}
                       />
                     </div>
-                    <span className={`text-xs font-medium ${passwordStrength.color}`}>
-                      {passwordStrength.text}
+                    <span className={`text-xs font-medium`}>
+                      Weak
                     </span>
                   </div>
                 </div>
@@ -204,8 +156,8 @@ export default function ResetPasswordPage() {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  name="confirm_password"
-                  value={formData.confirm_password}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white pr-12"
@@ -230,9 +182,9 @@ export default function ResetPasswordPage() {
               </div>
               
               {/* Password Match Indicator */}
-              {formData.confirm_password && (
+              {formData.confirmPassword && (
                 <div className="mt-1">
-                  {formData.new_password === formData.confirm_password ? (
+                  {formData.password === formData.confirmPassword ? (
                     <p className="text-xs text-green-600 dark:text-green-400">
                       ✓ Passwords match
                     </p>
@@ -247,7 +199,7 @@ export default function ResetPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading || formData.new_password !== formData.confirm_password || passwordStrength.score < 3}
+              disabled={loading || formData.password !== formData.confirmPassword}
               className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

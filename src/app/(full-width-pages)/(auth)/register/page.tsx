@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { axiosApiCall } from "../../../../utils/api";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -40,7 +40,10 @@ export default function RegisterPage() {
     }
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/register", formData);
+      const response = await axiosApiCall("/api/auth/register", {
+        method: "POST",
+        data: formData
+      });
       
       // Store the OTP token temporarily
       localStorage.setItem("otp_token", response.data.token);
