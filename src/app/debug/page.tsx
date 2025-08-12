@@ -55,6 +55,29 @@ export default function DebugPage() {
     }
   };
 
+  const testConnectivity = async () => {
+    setIsLoading(true);
+    addLog('Testing basic connectivity...');
+    
+    try {
+      const response = await fetch('https://tms-backend-mnf4.onrender.com/api/', {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+      });
+      
+      if (response.ok) {
+        addLog(`✅ Basic connectivity successful: ${response.status}`);
+      } else {
+        addLog(`⚠️ Basic connectivity failed: ${response.status}`);
+      }
+    } catch (error: any) {
+      addLog(`❌ Basic connectivity failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -65,7 +88,18 @@ export default function DebugPage() {
         <ApiDebug />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Test Connectivity</h2>
+          <button
+            onClick={testConnectivity}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+          >
+            {isLoading ? 'Testing...' : 'Test Basic Connectivity'}
+          </button>
+        </div>
+
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold mb-4">Test Tickets API</h2>
           <button

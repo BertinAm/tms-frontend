@@ -6,7 +6,6 @@ const API_URLS = {
 
 // Function to get the appropriate API URL based on environment
 export const getApiUrl = (): string => {
-  // Debug logging
   console.log('🔍 Environment check:', {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
@@ -25,7 +24,7 @@ export const getApiUrl = (): string => {
     console.log('🚀 Using Render backend (production/Render URL set)');
     return API_URLS.RENDER;
   }
-  
+
   // In development, use localhost
   console.log('🏠 Using localhost backend (development)');
   return API_URLS.LOCAL;
@@ -36,15 +35,15 @@ export const getApiUrls = (): string[] => {
   // Force Render backend if we're not on localhost
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     console.log('🌐 Prioritizing Render backend (not localhost)');
-    return [API_URLS.RENDER, API_URLS.LOCAL];
+    return [API_URLS.RENDER];
   }
 
   // In production, prioritize Render backend
   if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_RENDER_API_URL) {
     console.log('🚀 Prioritizing Render backend (production/Render URL set)');
-    return [API_URLS.RENDER, API_URLS.LOCAL];
+    return [API_URLS.RENDER];
   }
-  
+
   // In development, try localhost first
   console.log('🏠 Prioritizing localhost backend (development)');
   return [API_URLS.LOCAL, API_URLS.RENDER];
@@ -91,7 +90,7 @@ export const apiCall = async (
   throw new Error('All API endpoints failed');
 };
 
-// Axios wrapper for backward compatibility
+// Fetch-based API call for better CORS handling
 export const axiosApiCall = async (
   endpoint: string,
   options: {
@@ -102,48 +101,58 @@ export const axiosApiCall = async (
   } = {}
 ): Promise<any> => {
   const urls = getApiUrls();
-  const { method = 'GET', data, headers = {}, timeout = 15000 } = options;
+  const { method = 'GET', data, headers = {}, timeout = 30000 } = options;
 
   for (const baseUrl of urls) {
     try {
       const url = `${baseUrl}${endpoint}`;
-      console.log(`🔄 Trying axios call to: ${url}`);
+      console.log(`🔄 Trying fetch call to: ${url}`);
       console.log(`📤 Request method: ${method}`);
       console.log(`📤 Request data:`, data);
       console.log(`📤 Request headers:`, headers);
       
-      const axios = (await import('axios')).default;
-      const response = await axios({
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(url, {
         method,
-        url,
-        data,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           ...headers,
         },
-        timeout,
-        withCredentials: false, // Disable credentials for CORS
+        body: data ? JSON.stringify(data) : undefined,
+        signal: controller.signal,
+        mode: 'cors',
+        credentials: 'omit',
       });
 
-      console.log(`✅ Axios call successful to: ${baseUrl}`);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      
+      console.log(`✅ Fetch call successful to: ${baseUrl}`);
       console.log(`📥 Response status:`, response.status);
-      console.log(`📥 Response data:`, response.data);
-      return response.data;
+      console.log(`📥 Response data:`, responseData);
+      return responseData;
     } catch (error: any) {
-      console.warn(`⚠️ Axios call failed to ${baseUrl}:`, error);
+      console.warn(`⚠️ Fetch call failed to ${baseUrl}:`, error);
       console.warn(`⚠️ Error details:`, {
         message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-        }
+        name: error.name,
+        type: error.type,
       });
+      
+      // If it's a timeout or network error, try the next URL
+      if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('Failed to fetch')) {
+        console.warn(`⏰ Timeout/Network error for ${baseUrl}, trying next URL...`);
+        continue;
+      }
       
       // If it's the last URL, throw the error
       if (baseUrl === urls[urls.length - 1]) {
