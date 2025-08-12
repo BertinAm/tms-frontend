@@ -30,20 +30,21 @@ export const useTickets = () => {
         },
       });
       
-      console.log('✅ API Response Status:', response.status);
-      console.log('✅ API Response Headers:', response.headers);
-      console.log('✅ API Response Data Type:', typeof response.data);
-      console.log('✅ API Response Data:', response.data);
-      console.log('✅ Is Array?', Array.isArray(response.data));
+      console.log('✅ API Response Type:', typeof response);
+      console.log('✅ API Response Data Type:', typeof response);
+      console.log('✅ API Response Data:', response);
+      console.log('✅ Is Array?', Array.isArray(response));
+      console.log('✅ Response length:', Array.isArray(response) ? response.length : 'Not an array');
+      console.log('✅ Response keys:', typeof response === 'object' ? Object.keys(response) : 'Not an object');
       
       // Handle both array and string responses
-      let ticketData = response.data;
+      let ticketData = response;
       
       // If response is a string, try to parse it as JSON
-      if (typeof response.data === 'string') {
+      if (typeof response === 'string') {
         console.log('⚠️ Response is a string, attempting to parse as JSON...');
         try {
-          ticketData = JSON.parse(response.data);
+          ticketData = JSON.parse(response);
           console.log('✅ Successfully parsed string as JSON');
         } catch (parseError) {
           console.error('❌ Failed to parse string as JSON:', parseError);

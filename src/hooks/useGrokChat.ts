@@ -63,17 +63,21 @@ export const useGrokChat = (): UseGrokChatReturn => {
         }
       });
 
-      if (response.data.response) {
+      console.log('✅ Chat API Response:', response);
+      console.log('✅ Response type:', typeof response);
+      console.log('✅ Response keys:', typeof response === 'object' ? Object.keys(response) : 'Not an object');
+
+      if (response.response) {
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: response.data.response,
-          timestamp: response.data.timestamp || new Date().toISOString(),
+          content: response.response,
+          timestamp: response.timestamp || new Date().toISOString(),
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-        setConversationLength(response.data.conversation_length || 0);
-        setMessageCount(response.data.message_count || 0);
+        setConversationLength(response.conversation_length || 0);
+        setMessageCount(response.message_count || 0);
       }
     } catch (err) {
       console.error('Chat error:', err);
@@ -104,8 +108,8 @@ export const useGrokChat = (): UseGrokChatReturn => {
         }
       });
 
-      if (response.data.analysis) {
-        return response.data.analysis;
+      if (response.analysis) {
+        return response.analysis;
       }
       return null;
     } catch (err) {
