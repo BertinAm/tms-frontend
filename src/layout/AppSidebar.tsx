@@ -55,8 +55,8 @@ const navItems: NavItem[] = [
   },
   {
     icon: <CalenderIcon />,
-    name: "Activity Log",
-    path: "/activity",
+    name: "Activity Logs",
+    path: "/activity-logs",
   },
 ];
 
