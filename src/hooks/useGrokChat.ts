@@ -81,13 +81,22 @@ export const useGrokChat = (): UseGrokChatReturn => {
       }
     } catch (err) {
       console.error('Chat error:', err);
-      setError('Failed to send message. Please try again.');
+      console.error('Chat error details:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        config: err.config
+      });
+      
+      setError(`Failed to send message: ${err.message}`);
       
       // Add error message to chat
       const errorMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: `I apologize, but I encountered an error: ${err.message}. Please try again.`,
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errorMessage]);

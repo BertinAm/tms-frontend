@@ -1,67 +1,57 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import { axiosApiCall } from "../../utils/api";
 import ApiDebug from "../../components/ApiDebug";
 
 export default function DebugPage() {
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [testMessage, setTestMessage] = useState('List the high priority tickets');
+  const [isLoading, setIsLoading] = useState(false);
 
   const addLog = (message: string) => {
-    setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
-  const testAPI = async () => {
-    setLoading(true);
-    setDebugInfo([]);
-    
-    addLog('Starting API test...');
+  const testTicketsAPI = async () => {
+    setIsLoading(true);
+    addLog('Testing tickets API...');
     
     try {
-      addLog('Making request to /api/tickets...');
-      
       const response = await axiosApiCall('/api/tickets', {
-        method: 'GET',
-        timeout: 10000
+        method: 'GET'
       });
       
-      addLog(`✅ Response status: ${response.status || 'N/A'}`);
-      addLog(`✅ Response data type: ${typeof response}`);
-      addLog(`✅ Is array: ${Array.isArray(response)}`);
-      addLog(`✅ Data length: ${response?.length || 0}`);
-      
-      if (Array.isArray(response) && response.length > 0) {
-        addLog(`✅ Sample ticket: ${JSON.stringify(response[0], null, 2)}`);
-      }
-      
+      addLog(`✅ Tickets API successful: ${Array.isArray(response) ? response.length : 'Invalid response'} tickets`);
+      addLog(`📋 Sample ticket: ${JSON.stringify(response[0] || 'No tickets')}`);
     } catch (error: any) {
-      addLog(`❌ Error: ${error.message}`);
-      addLog(`❌ Error code: ${error.code}`);
-      addLog(`❌ Response status: ${error.response?.status}`);
-      addLog(`❌ Response data: ${JSON.stringify(error.response?.data)}`);
+      addLog(`❌ Tickets API failed: ${error.message}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const testDirectBackend = async () => {
-    setLoading(true);
-    addLog('Testing direct backend connection...');
+  const testChatAPI = async () => {
+    setIsLoading(true);
+    addLog('Testing chat API...');
     
     try {
-      const response = await axiosApiCall('/api/tickets', {
-        method: 'GET',
-        timeout: 10000
+      const response = await axiosApiCall('/api/chat', {
+        method: 'POST',
+        data: {
+          message: testMessage,
+          session_id: 'debug-test',
+          reset: false
+        }
       });
       
-      addLog(`✅ Direct backend status: Success`);
-      addLog(`✅ Direct backend data length: ${response?.length || 0}`);
-      
+      addLog(`✅ Chat API successful`);
+      addLog(`📋 Response: ${response.response?.substring(0, 100)}...`);
     } catch (error: any) {
-      addLog(`❌ Direct backend error: ${error.message}`);
+      addLog(`❌ Chat API failed: ${error.message}`);
+      addLog(`🔍 Error details: ${JSON.stringify(error.response?.data || error.message)}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -74,54 +64,57 @@ export default function DebugPage() {
       <div className="mb-6">
         <ApiDebug />
       </div>
-      
-      <div className="space-y-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex space-x-4 mb-4">
-            <button
-              onClick={testAPI}
-              disabled={loading}
-              className="px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-lg"
-            >
-              {loading ? 'Testing...' : 'Test API'}
-            </button>
-            
-            <button
-              onClick={testDirectBackend}
-              disabled={loading}
-              className="px-4 py-2 bg-secondary-500 hover:bg-secondary-600 disabled:bg-gray-300 text-gray-900 rounded-lg"
-            >
-              {loading ? 'Testing...' : 'Test Direct Backend'}
-            </button>
-          </div>
-          
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
-            <h3 className="font-semibold mb-2">Debug Logs:</h3>
-            {debugInfo.length === 0 ? (
-              <p className="text-gray-500">Click a button to start testing...</p>
-            ) : (
-              <div className="space-y-1">
-                {debugInfo.map((log: string, index: number) => (
-                  <div key={index} className="text-sm font-mono bg-white dark:bg-gray-600 p-2 rounded">
-                    {log}
-                  </div>
-                ))}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Test Tickets API</h2>
+          <button
+            onClick={testTicketsAPI}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isLoading ? 'Testing...' : 'Test Tickets API'}
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">Test Chat API</h2>
+          <input
+            type="text"
+            value={testMessage}
+            onChange={(e) => setTestMessage(e.target.value)}
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded"
+            placeholder="Enter test message"
+          />
+          <button
+            onClick={testChatAPI}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+          >
+            {isLoading ? 'Testing...' : 'Test Chat API'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-4">Debug Logs</h2>
+        <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded max-h-96 overflow-y-auto">
+          {logs.length === 0 ? (
+            <p className="text-gray-500">No logs yet. Run a test to see results.</p>
+          ) : (
+            logs.map((log, index) => (
+              <div key={index} className="text-sm font-mono mb-1">
+                {log}
               </div>
-            )}
-          </div>
+            ))
+          )}
         </div>
-        
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
-            Troubleshooting Steps:
-          </h3>
-          <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
-            <li>• Check if Django server is running on port 8000</li>
-            <li>• Verify Next.js proxy configuration in next.config.ts</li>
-            <li>• Check browser console for CORS errors</li>
-            <li>• Ensure both servers are restarted after config changes</li>
-          </ul>
-        </div>
+        <button
+          onClick={() => setLogs([])}
+          className="mt-4 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+        >
+          Clear Logs
+        </button>
       </div>
     </div>
   );

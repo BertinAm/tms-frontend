@@ -102,12 +102,15 @@ export const axiosApiCall = async (
   } = {}
 ): Promise<any> => {
   const urls = getApiUrls();
-  const { method = 'GET', data, headers = {}, timeout = 10000 } = options;
+  const { method = 'GET', data, headers = {}, timeout = 15000 } = options;
 
   for (const baseUrl of urls) {
     try {
       const url = `${baseUrl}${endpoint}`;
       console.log(`🔄 Trying axios call to: ${url}`);
+      console.log(`📤 Request method: ${method}`);
+      console.log(`📤 Request data:`, data);
+      console.log(`📤 Request headers:`, headers);
       
       const axios = (await import('axios')).default;
       const response = await axios({
@@ -116,15 +119,36 @@ export const axiosApiCall = async (
         data,
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...headers,
         },
         timeout,
+        withCredentials: false, // Disable credentials for CORS
       });
 
       console.log(`✅ Axios call successful to: ${baseUrl}`);
+      console.log(`📥 Response status:`, response.status);
+      console.log(`📥 Response data:`, response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.warn(`⚠️ Axios call failed to ${baseUrl}:`, error);
+      console.warn(`⚠️ Error details:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+        }
+      });
+      
+      // If it's the last URL, throw the error
+      if (baseUrl === urls[urls.length - 1]) {
+        throw error;
+      }
       continue;
     }
   }
