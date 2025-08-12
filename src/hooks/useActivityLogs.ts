@@ -33,7 +33,7 @@ export const useActivityLogs = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axiosApiCall('/api/activity-logs/', {
+      const response = await axiosApiCall('/api/activity-logs', {
         method: 'GET'
       });
 
