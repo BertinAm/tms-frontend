@@ -78,9 +78,11 @@ export default function VerifyOtpClient() {
         },
       });
 
+      console.log('OTP verification response:', response);
+
       if (type === "password_reset") {
         if (isClient) {
-          localStorage.setItem("reset_token", response.token);
+          localStorage.setItem("reset_token", response.reset_token);
         }
         router.push(`/reset-password?email=${encodeURIComponent(email || "")}`);
       } else {
@@ -88,6 +90,7 @@ export default function VerifyOtpClient() {
         router.push("/");
       }
     } catch (err: any) {
+      console.error('OTP verification error:', err);
       if (err.message?.includes("400")) {
         setError("Invalid OTP. Please try again.");
       } else {

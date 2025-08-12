@@ -51,15 +51,18 @@ export default function RegisterPage() {
         data: formData
       });
       
+      console.log('Registration response:', response);
+      
       // Store the OTP token temporarily
       if (isClient) {
-        localStorage.setItem("otp_token", response.data.token);
-        localStorage.setItem("user_id", response.data.user_id);
+        localStorage.setItem("otp_token", response.token);
+        localStorage.setItem("user_id", response.user_id);
       }
       
       // Redirect to OTP verification
       router.push(`/verify-otp?type=registration&email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
+      console.error('Registration error:', err);
       if (err.response?.data) {
         const errors = err.response.data;
         if (errors.username) {
